@@ -1,0 +1,52 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editors and local tooling
+.idea/
+.vscode/
+.codex/
+*.swp
+*.swo
+
+# Environment variables and credentials
+.env
+.env.*
+!.env.example
+secrets/
+private/
+credentials/
+*.secret
+*.token
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+authorized_keys
+
+# VPN and network profiles that commonly contain private keys
+*.ovpn
+*.mobileconfig
+wg*.conf
+client*.conf
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+.cache/
+
+# JavaScript
+node_modules/
+dist/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
