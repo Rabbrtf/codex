@@ -1,0 +1,72 @@
+name: Build LP ITS draw.io 32.5.5 for Windows
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - projects/lp-its-drawio-32.5.5/**
+      - .github/workflows/build-lp-its-drawio-32.5.5.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-installer:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      DRAWIO_UNSIGNED: 'true'
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Check out customization files
+        uses: actions/checkout@v6
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Check out exact upstream v32.5.5 source
+        run: |
+          git clone --recurse-submodules --branch v32.5.5 --depth 1 https://github.com/jgraph/drawio-desktop.git upstream
+          test "$(git -C upstream rev-parse HEAD)" = "8941e0454514d5b4448e4536f4674975e4c1588d"
+          test "$(git -C upstream/drawio rev-parse HEAD)" = "17b367b91dbab91804f852645788d7ffb46dcb79"
+
+      - name: Apply LP ITS customization
+        run: node projects/lp-its-drawio-32.5.5/apply-customization.mjs upstream
+
+      - name: Install dependencies and disable updates
+        working-directory: upstream
+        run: |
+          npm ci
+          npm run sync -- disableUpdate
+
+      - name: Verify customization and run upstream tests
+        run: |
+          node projects/lp-its-drawio-32.5.5/apply-customization.mjs upstream --verify-only
+          cd upstream
+          npm test
+
+      - name: Build unsigned Windows x64 NSIS installer
+        working-directory: upstream
+        run: npx electron-builder --config electron-builder-win.json --win nsis --x64 --publish never
+
+      - name: Generate SHA-256 checksum
+        working-directory: upstream
+        run: sha256sum dist/*.exe > dist/SHA256SUMS.txt
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v6
+        with:
+          name: LP-ITS-drawio-32.5.5-windows-x64
+          path: |
+            upstream/dist/*.exe
+            upstream/dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
