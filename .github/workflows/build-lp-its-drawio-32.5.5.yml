@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-windows-installer:
@@ -67,6 +67,19 @@ jobs:
       - name: Generate SHA-256 checksum
         working-directory: upstream
         run: sha256sum dist/*.exe > dist/SHA256SUMS.txt
+
+      - name: Publish reproducible installer release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_TAG="lp-its-drawio-v32.5.5"
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --target "$GITHUB_SHA" \
+              --title "LP ITS draw.io Desktop 32.5.5 (Windows x64)" \
+              --notes "Unofficial unsigned Windows x64 build based on exact upstream draw.io Desktop v32.5.5. Changes: Help website item replaced by 开发团队 → LP ITS; update menu and automatic updates disabled. Windows SmartScreen may warn because this personal build is not code-signed. Source and reproducible patch: projects/lp-its-drawio-32.5.5/. Licensed under GPL-3.0."
+          fi
+          gh release upload "$RELEASE_TAG" upstream/dist/*.exe upstream/dist/SHA256SUMS.txt --clobber
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@v6
